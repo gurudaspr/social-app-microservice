@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import postRoutes from './routes/post.routes.js';
 import errorHandler from './middlewares/errorHandler.js';
 import logger from './utils/logger.js';
+import {connectRabbitMQ} from './utils/rabbitmq.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -41,10 +42,20 @@ app.use('/api/posts', (req, res, next) => {
 //error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`Post service running on port ${PORT}`);
-});
+async function startServer() {
+  try {
+    await connectRabbitMQ();
+    app.listen(PORT, () => {
+      logger.info(`Post service running on port ${PORT}`);
+    });
+  }
+  catch (error) {
+    logger.error(`Error starting server: ${error.message}`);
+    process.exit(1);
+  }
+}
 
+startServer();
 //unhandled promise rejection
 
 process.on("unhandledRejection", (reason, promise) => {
